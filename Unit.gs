@@ -1,12 +1,4 @@
 /**
- * simple unit tester
- * call like this
- * unit.section ('some description', ()=> {
- *   unit.test (expectedValue, actualValue, options) 
- *   unit.test ...etc
- * }, false)  (last argument is optional - true means skip this section)
- */
-/**
  * UnitResult
  * @typedef {Object} UnitResult
  * @property {TestOptions} options - the test options
