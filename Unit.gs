@@ -177,7 +177,7 @@ class _Unit {
    * @return {string} the decorated result
    */
   getTestResult(result) {
-    return `${this.getTestDescription(result)} - ${result.failed ? 'failed' : 'passed'} (${result.eql} test)`
+    return `${this.getTestDescription(result)} - ${result.failed ? 'failed' : 'passed'} (${!result.options.invert} test)`
   }
 
   /** 
@@ -259,6 +259,28 @@ class _Unit {
     console.log(this.totalErrors ? 'SOME TESTS FAILED' : 'ALL TESTS PASSED')
     return this.isGood()
 
+  }
+
+  /**
+   * just a useful throw catcher
+   * @param {function} func the thing to run
+   * @param {Error || null} the error if there was one
+   */
+  threw (func) {
+    try {
+      func()
+      return null
+    } catch(error) {
+      // if this is a packresponse, we need to sort out the error message
+      if (error && error.message && typeof error.message === 'string') {
+        try {
+          return JSON.parse (error.message)
+        } catch(err) {
+          return error
+        }
+      }
+      return error
+    }
   }
 
 }
