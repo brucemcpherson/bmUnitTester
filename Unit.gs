@@ -17,6 +17,8 @@
  * @property {function} test - The section test collection
  * @property {UnitResult[]} results - The results for this section
  * @property {number} number - the section serial number
+ * @property {number} startTime when section started
+ * @property {number} endTime when section ended
  * @property {TestOptions} options - the section options
  */
 
@@ -28,6 +30,8 @@
  * @property {boolean} [neverUndefined = true]  - if actual is ever undefined it's a failure
  * @property {boolean} [neverNull = false]  - if actual is ever null it's a failure
  * @property {boolean} [showErrorsOnly = false]  - only verbose if there's an error
+ * @property {number} [maxLog = Infinity]  - max number of chars to log in report
+ * @property {boolean} [showValues = true] - show values in reports
  */
 
 const _defaultOptions = {
@@ -39,7 +43,9 @@ const _defaultOptions = {
   neverUndefined: true,
   neverNull: false,
   showErrorsOnly: false,
-  skip: false
+  skip: false,
+  maxLog: Infinity,
+  showValues: true
 }
 
 class _Unit {
@@ -51,13 +57,18 @@ class _Unit {
    */
   constructor(options = {}) {
     this.sections = []
+    this.startTime = new Date().getTime()
     this.options = {
       ..._defaultOptions,
       ...options
     }
   }
 
-  get defaultCompare () {
+  get deepEquals() {
+    return deepEquals
+  }
+
+  get defaultCompare() {
     return _defaultOptions.compare
   }
   /**
@@ -76,16 +87,25 @@ class _Unit {
       test,
       results: [],
       number: this.sections.length,
-      options
+      options,
+      startTime: new Date().getTime()
     })
     const currentSection = this.currentSection
-    const {skip, description} = options
+    const { skip, description } = options
     console.log(`${skip ? 'Skipping' : 'Starting'} section`, description)
     if (!skip) {
       test()
       const failures = this.sectionErrors(currentSection)
       const passes = this.sectionPasses(currentSection)
-      console.log('Finished section', description, 'passes:', passes, 'failures:', failures)
+      console.log(
+        'Finished section',
+        description,
+        'passes:',
+        passes,
+        'failures:',
+        failures,
+        'elapsed ms',
+        new Date().getTime() - currentSection.startTime)
       return failures
     }
     return []
@@ -186,14 +206,20 @@ class _Unit {
    * @return {string} the decorated result
    */
   reportTest(result) {
-    if (result.failed) {
-      console.log('  ', this.getTestResult(result), newUnexpectedValueError(result.expect, result.actual))
-    } else if (!result.options.showErrorsOnly) {
-      console.log('  ', this.getTestResult(result), JSON.stringify(result.actual))
+    const { failed, options, expect, actual } = result
+    const e = options.showValues ? this.trunk(expect, options) : '--'
+    const a = options.showValues ? this.trunk(actual, options) : '--'
+    if (failed) {
+      console.log('  ', this.getTestResult(result), '  \n', newUnexpectedValueError(e, a))
+    } else if (!options.showErrorsOnly) {
+      console.log('  ', this.getTestResult(result), '  \n', a)
     }
     return result
   }
-
+  trunk(val, options) {
+    const v = typeof val === 'object' ? JSON.stringify(val) : val
+    return Utils.trunk(v, options.maxLog)
+  }
   /**
    * all the tests passed
    * @return {Boolean} whether all was good
@@ -257,6 +283,7 @@ class _Unit {
       'Total failures', this.totalErrors,
       `(${Utils.percent(this.totalErrors, this.totalPasses + this.totalErrors)}%)`)
     console.log(this.totalErrors ? 'SOME TESTS FAILED' : 'ALL TESTS PASSED')
+    console.log('Total elapsed ms', new Date().getTime() - this.startTime)
     return this.isGood()
 
   }
@@ -266,16 +293,16 @@ class _Unit {
    * @param {function} func the thing to run
    * @param {Error || null} the error if there was one
    */
-  threw (func) {
+  threw(func) {
     try {
       func()
       return null
-    } catch(error) {
+    } catch (error) {
       // if this is a packresponse, we need to sort out the error message
       if (error && error.message && typeof error.message === 'string') {
         try {
-          return JSON.parse (error.message)
-        } catch(err) {
+          return JSON.parse(error.message)
+        } catch (err) {
           return error
         }
       }
