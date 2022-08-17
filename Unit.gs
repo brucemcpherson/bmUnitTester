@@ -289,6 +289,30 @@ class _Unit {
   }
 
   /**
+   * just a useful timer
+   * @param {function} func to run
+   * @param {object} [params]
+   * @param {boolean} [params.log=true] whether to log
+   * @param {string} [params.description=''] description of timer
+   */
+  timer(func, { log = true, description = '' } = {}) {
+    const startedAt = new Date().getTime()
+    const result = func()
+    const finishedAt = new Date().getTime()
+    const timer = {
+      startedAt,
+      finishedAt,
+      elapsed: finishedAt - startedAt
+    }
+    if (log) {
+      console.log(`timer ${description? 'for '+ description : ''}`, timer)
+    }
+    return {
+      result,
+      timer
+    }
+  }
+  /**
    * just a useful throw catcher
    * @param {function} func the thing to run
    * @param {Error || null} the error if there was one
