@@ -112,6 +112,17 @@ class _Unit {
   }
 
   /**
+   * this is a prebaked comparison of error returned by unit.threw or indeed any rx
+   * can be used like this unit.is(/regex to match error/, unit.threw(()=> some function), {
+   *   compare: unit.rxCompare
+   * })
+   */
+  rxCompare (expected, actual) {
+    if (!expected instanceof RegExp) throw '1st arg (expected) should be a regex'
+    return actual && expected.test(actual) 
+  }
+
+  /**
    * get the section currently being processed
    * @return {UnitSection}
    */
@@ -217,7 +228,9 @@ class _Unit {
     return result
   }
   trunk(val, options) {
-    const v = typeof val === 'object' ? JSON.stringify(val) : val
+    const v = typeof val === 'object' && val !== null && Reflect.has(val, "toJSON")
+      ? JSON.stringify(val)
+      : val
     return Utils.trunk(v, options.maxLog)
   }
   /**
@@ -337,4 +350,3 @@ class _Unit {
 }
 // export
 var Unit = _Unit
-
