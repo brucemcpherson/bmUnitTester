@@ -78,25 +78,27 @@ class _Unit {
    * @return {UnitResult[]} tests that have failed so far in this section
    */
   section(test, options = {}) {
+
     options = {
       ...this.options,
       ...options,
-      description: options.description || ''
+      description: options.description || '',
+      sectionIndex: this.sections.length
     }
-    this.sections.push({
+
+    const currentSection = {
       test,
       results: [],
       number: this.sections.length,
       options,
-      startTime: new Date().getTime()
-    })
-    const currentSection = this.currentSection
+      startTime: new Date().getTime(),
+      isAsync: false
+    }
+
+    this.sections.push(currentSection)
+    
     const { skip, description } = options
-    console.log(`${skip ? 'Skipping' : 'Starting'} section`, description)
-    if (!skip) {
-      test()
-      const failures = this.sectionErrors(currentSection)
-      const passes = this.sectionPasses(currentSection)
+    const rp = (passes, failures) => {
       console.log(
         'Finished section',
         description,
@@ -108,7 +110,31 @@ class _Unit {
         new Date().getTime() - currentSection.startTime)
       return failures
     }
-    return []
+    console.log(`${skip ? 'Skipping' : 'Starting'} section`, description)
+    if (!skip) {
+
+      // no async in apps script, but promises are supported, so we need to convert to a promise and wait
+      // the test should return a resolved promise when complete
+      // this runs all the tests in the section
+      let tested = test()
+
+      if (Utils.isPromise(tested)) {
+        currentSection.isAsync = true
+        return Promise.resolve(tested).then(() => {
+          const failures = this.sectionErrors(currentSection)
+          const passes = this.sectionPasses(currentSection)
+          return rp(passes, failures)
+        })
+
+      } else {
+        const failures = this.sectionErrors(currentSection)
+        const passes = this.sectionPasses(currentSection)
+        return rp(passes, failures)
+      }
+    }
+    else {
+      return []
+    }
   }
 
   /**
@@ -117,9 +143,9 @@ class _Unit {
    *   compare: unit.rxCompare
    * })
    */
-  rxCompare (expected, actual) {
+  rxCompare(expected, actual) {
     if (!expected instanceof RegExp) throw '1st arg (expected) should be a regex'
-    return actual && expected.test(actual) 
+    return actual && expected.test(actual)
   }
 
   /**
@@ -142,6 +168,9 @@ class _Unit {
       ...currentSection.options,
       ...options,
       description: options.description || ''
+    }
+    if (currentSection.number !== options.sectionIndex) {
+      throw `unexpected section index ${options.sectionIndex} - expected ${currentSection.number}`
     }
     if (!options.skip) {
       const testNumber = currentSection.results.length
@@ -318,7 +347,7 @@ class _Unit {
       elapsed: finishedAt - startedAt
     }
     if (log) {
-      console.log(`timer ${description? 'for '+ description : ''}`, timer)
+      console.log(`timer ${description ? 'for ' + description : ''}`, timer)
     }
     return {
       result,
