@@ -15,7 +15,7 @@ class UnexpectedTypeError extends Error {
 }
 class UnexpectedValueError extends Error {
   constructor(expectedValue, actualValue) {
-    super(`Expected ${JSON.stringify(expectedValue)} but got ${JSON.stringify(actualValue)}`);
+    super(`Actual: ${JSON.stringify(actualValue)} Expected: ${JSON.stringify(expectedValue)}`);
     this.name = "Unexpected value";
     this.expectedValue = expectedValue
     this.actualValue = actualValue
