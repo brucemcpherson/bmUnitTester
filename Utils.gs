@@ -8,6 +8,7 @@ const Utils = (() => {
   const isFunction = (item) => typeof item === 'function'
   const isArray = (item) => Array.isArray (item)
   const isPromise = (item) => !isNU (item) && (isObject(item) || isFunction(item)) && isFunction (item.then)
+  const isString = (item) => typeof item === "string"
   const percent = (value, base, places = 1) => {
     return base ? (100 * value / base).toFixed(places) : base.toFixed(places)
   }
@@ -19,6 +20,11 @@ const Utils = (() => {
     return str
   };
 
+  /** handle wildcards */
+  const hasWildCards = (text) => Boolean(text.match(/\*|\?/))
+  const wMatch = (target) => Exports.wcMatch(target)
+  const isMatch = (a, b) => wMatch(a)(b)
+
   return {
     trunk,
     isUndefined,
@@ -28,7 +34,11 @@ const Utils = (() => {
     isPromise,
     isObject,
     isFunction,
-    isArray
+    isArray,
+    isString,
+    hasWildCards,
+    isMatch,
+    wMatch
   }
 
 })()
