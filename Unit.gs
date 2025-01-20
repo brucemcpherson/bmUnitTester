@@ -36,7 +36,7 @@
 
 const _defaultOptions = {
   compare: (expect, actual) => {
-    return deepEquals(expect, actual)
+    return Exports.deepEquals(expect, actual)
   },
   invert: false,
   description: '',
@@ -71,7 +71,7 @@ class _Unit {
   }
 
   get deepEquals() {
-    return deepEquals
+    return Exports.deepEquals
   }
 
   get defaultCompare() {
@@ -91,7 +91,7 @@ class _Unit {
     // the first arg could be the test or the description to transition to ava style
     let desc = a , test = b, options = c || {}
 
-    if (Utils.isFunction(a)) {
+    if (Exports.Utils.isFunction(a)) {
       desc = ""
       test = a
       options = b || {}
@@ -161,7 +161,7 @@ class _Unit {
 
       let tested = test(t)
 
-      if (Utils.isPromise(tested)) {
+      if (Exports.Utils.isPromise(tested)) {
         currentSection.isAsync = true
         return Promise.resolve(tested).then(() => {
           const failures = this.sectionErrors(currentSection)
@@ -218,8 +218,8 @@ class _Unit {
     if (!options.skip || this.skipFromHere) {
       const eql = options.compare(expect, actual)
       const failed = (Boolean(eql) === Boolean(options.invert)) ||
-        (options.neverUndefined && Utils.isUndefined(actual)) ||
-        (options.neverNull && Utils.isNull(actual))
+        (options.neverUndefined && Exports.Utils.isUndefined(actual)) ||
+        (options.neverNull && Exports.Utils.isNull(actual))
 
       const result = {
         options,
@@ -248,7 +248,7 @@ class _Unit {
    * return {TestOptions}
    */
   _fixOptions (options) {
-    if (Utils.isString(options)) {
+    if (Exports.Utils.isString(options)) {
       return {
         description: options
       }
@@ -265,7 +265,7 @@ class _Unit {
   deepEqual(expect, actual, options) {
     return this.test(expect, actual, {
       compare: (expect, actual) => {
-        return deepEquals(expect, actual)
+        return Exports.deepEquals(expect, actual)
       }, ...this._fixOptions(options), invert: false
     })
   }
@@ -280,7 +280,7 @@ class _Unit {
   notDeepEqual(expect, actual, options) {
     return this.test(expect, actual, {
       compare: (expect, actual) => {
-        return deepEquals(expect, actual)
+        return Exports.deepEquals(expect, actual)
       }, ...this._fixOptions(options), invert: true
     })
   }
@@ -371,7 +371,7 @@ class _Unit {
    * @return UnitResult
    */
   notHasWildCards(actual, options) {
-    return this.test(Utils.hasWildCards(actual), true, { ...this._fixOptions(options), expectThenActual: false, invert: true })
+    return this.test(Exports.Utils.hasWildCards(actual), true, { ...this._fixOptions(options), expectThenActual: false, invert: true })
   }
 
 
@@ -382,7 +382,7 @@ class _Unit {
    * @return UnitResult
    */
   hasWildCards(actual, options) {
-    return this.test(Utils.hasWildCards(actual), true, { ...this._fixOptions(options), expectThenActual: false, invert: false })
+    return this.test(Exports.Utils.hasWildCards(actual), true, { ...this._fixOptions(options), expectThenActual: false, invert: false })
   }
 
 
@@ -444,7 +444,7 @@ class _Unit {
     const e = options.showValues ? this.trunk(expect, options) : '--'
     const a = options.showValues ? this.trunk(actual, options) : '--'
     if (failed) {
-      console.log('  ', this.getTestResult(result), '  \n', newUnexpectedValueError(e, a))
+      console.log('  ', this.getTestResult(result), '  \n', Exports.newUnexpectedValueError(e, a))
     } else if (!options.showErrorsOnly) {
       console.log('  ', this.getTestResult(result), '  \n', a)
     }
@@ -454,7 +454,7 @@ class _Unit {
     const v = typeof val === 'object' && val !== null && Reflect.has(val, "toJSON")
       ? JSON.stringify(val)
       : val
-    return Utils.trunk(v, options.maxLog)
+    return Exports.Utils.trunk(v, options.maxLog)
   }
   /**
    * all the tests passed
@@ -511,7 +511,7 @@ class _Unit {
    * })
    */
   rxCompare(expected, actual) {
-    if (!Utils.isFunction (expected?.test)) {
+    if (!Exports.Utils.isFunction (expected?.test)) {
       console.log(expected,' not a regex')
       throw 'expected argument to rxCompare should be a regex'
     }
@@ -526,7 +526,7 @@ class _Unit {
    * })
    */
   wcCompare(expected, actual) {
-    return Utils.isMatch(expected, actual)
+    return Exports.Utils.isMatch(expected, actual)
   }
 
   /**
@@ -539,9 +539,9 @@ class _Unit {
       console.log('  ', f.options.description, 'passes', this.sectionPasses(f), 'failures', this.sectionErrors(f))
     })
     console.log('  ', 'Total passes', this.totalPasses,
-      `(${Utils.percent(this.totalPasses, this.totalPasses + this.totalErrors)}%)`,
+      `(${Exports.Utils.percent(this.totalPasses, this.totalPasses + this.totalErrors)}%)`,
       'Total failures', this.totalErrors,
-      `(${Utils.percent(this.totalErrors, this.totalPasses + this.totalErrors)}%)`)
+      `(${Exports.Utils.percent(this.totalErrors, this.totalPasses + this.totalErrors)}%)`)
     console.log(this.totalErrors ? 'SOME TESTS FAILED' : 'ALL TESTS PASSED')
     console.log('Total elapsed ms', new Date().getTime() - this.startTime)
     return this.isGood()
