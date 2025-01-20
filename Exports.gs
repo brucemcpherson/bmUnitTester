@@ -15,11 +15,27 @@ var Exports = {
     return this.guard(Utils)
   },
 
+  newUnknownPropertyError(...args) {
+    return this.guard(newUnknownPropertyError(...args))
+  },
+
+
+  newUnexpectedTypeError(...args) {
+    return this.guard(newUnexpectedTypeError(...args))
+  },
+
+  newUnexpectedValueError(...args) {
+    return this.guard(newUnexpectedValueError(...args))
+  },
+
 
   newUnit(...args) {
     return this.guard(new this.Unit(...args))
   },
 
+  get deepEquals () {
+    return deepEquals
+  },
 
   get wcMatch() {
     return this.guard(wildcardMatch)
