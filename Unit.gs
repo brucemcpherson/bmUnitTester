@@ -1,3 +1,5 @@
+
+
 /**
  * UnitResult
  * @typedef {Object} UnitResult
@@ -89,7 +91,7 @@ class _Unit {
   section(a, b, c) {
 
     // the first arg could be the test or the description to transition to ava style
-    let desc = a , test = b, options = c || {}
+    let desc = a, test = b, options = c || {}
 
     if (Exports.Utils.isFunction(a)) {
       desc = ""
@@ -100,7 +102,7 @@ class _Unit {
     options = {
       ...this.options,
       ...options,
-      description: options.description || '',
+      description: options.description || desc,
       sectionIndex: this.sections.length
     }
 
@@ -119,7 +121,7 @@ class _Unit {
     description = description || desc
     skip = skip || this.skipFromHere
     const rp = (passes, failures) => {
-      console.log(
+      console.info(
         'Finished section',
         description,
         'passes:',
@@ -130,7 +132,7 @@ class _Unit {
         new Date().getTime() - currentSection.startTime)
       return failures
     }
-    console.log(`${skip ? 'Skipping' : 'Starting'} section`, description)
+    console.info(`${skip ? 'Skipping' : 'Starting'} section`, description)
     if (!skip) {
 
       // no async in apps script, but promises are supported, so we need to convert to a promise and wait
@@ -247,7 +249,7 @@ class _Unit {
    * @param {string|object} [options] the options or a description
    * return {TestOptions}
    */
-  _fixOptions (options) {
+  _fixOptions(options) {
     if (Exports.Utils.isString(options)) {
       return {
         description: options
@@ -294,7 +296,7 @@ class _Unit {
    * @return UnitResult
    */
   rxMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: false , compare: (expect, actual) =>this.rxCompare (expect, actual)})
+    return this.test(expect, actual, { ...this._fixOptions(options), invert: false, compare: (expect, actual) => this.rxCompare(expect, actual) })
   }
 
   /** 
@@ -305,7 +307,7 @@ class _Unit {
    * @return UnitResult
    */
   notRxMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: true , compare: (expect, actual) =>this.rxCompare (expect, actual)})
+    return this.test(expect, actual, { ...this._fixOptions(options), invert: true, compare: (expect, actual) => this.rxCompare(expect, actual) })
   }
 
   /** 
@@ -316,7 +318,7 @@ class _Unit {
    * @return UnitResult
    */
   wildCardMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: false , compare: (expect, actual) =>this.wcCompare (expect, actual)})
+    return this.test(expect, actual, { ...this._fixOptions(options), invert: false, compare: (expect, actual) => this.wcCompare(expect, actual) })
   }
 
   /** 
@@ -327,7 +329,7 @@ class _Unit {
    * @return UnitResult
    */
   notWildCardMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: true , compare: (expect, actual) =>this.wcCompare (expect, actual)})
+    return this.test(expect, actual, { ...this._fixOptions(options), invert: true, compare: (expect, actual) => this.wcCompare(expect, actual) })
   }
 
   /** 
@@ -404,7 +406,7 @@ class _Unit {
    * @return UnitResult
    */
   truthy(actual, options) {
-    return this.test(actual ? true : false, true, { ...this._fixOptions(options), expectThenActual: false, invert: false})
+    return this.test(actual ? true : false, true, { ...this._fixOptions(options), expectThenActual: false, invert: false })
   }
 
   /** 
@@ -444,9 +446,9 @@ class _Unit {
     const e = options.showValues ? this.trunk(expect, options) : '--'
     const a = options.showValues ? this.trunk(actual, options) : '--'
     if (failed) {
-      console.log('  ', this.getTestResult(result), '  \n', Exports.newUnexpectedValueError(e, a))
+      console.info('  ', this.getTestResult(result), '  \n', Exports.newUnexpectedValueError(e, a))
     } else if (!options.showErrorsOnly) {
-      console.log('  ', this.getTestResult(result), '  \n', a)
+      console.info('  ', this.getTestResult(result), '  \n', a)
     }
     return result
   }
@@ -511,8 +513,7 @@ class _Unit {
    * })
    */
   rxCompare(expected, actual) {
-    if (!Exports.Utils.isFunction (expected?.test)) {
-      console.log(expected,' not a regex')
+    if (!Exports.Utils.isFunction(expected?.test)) {
       throw 'expected argument to rxCompare should be a regex'
     }
 
@@ -534,18 +535,18 @@ class _Unit {
    * @return {boolean} if true then there's no errors
    */
   report() {
-    console.log('Section summary')
+    console.info('Section summary')
     this.sections.forEach(f => {
-      console.log('  ', f.options.description, 'passes', this.sectionPasses(f), 'failures', this.sectionErrors(f))
+      console.info('',f.number+':', f.options.description, 'passes:'+ this.sectionPasses(f), 'failures:'+ this.sectionErrors(f))
     })
-    console.log('  ', 'Total passes', this.totalPasses,
+    console.info('Total passes', this.totalPasses,
       `(${Exports.Utils.percent(this.totalPasses, this.totalPasses + this.totalErrors)}%)`,
       'Total failures', this.totalErrors,
       `(${Exports.Utils.percent(this.totalErrors, this.totalPasses + this.totalErrors)}%)`)
-    console.log(this.totalErrors ? 'SOME TESTS FAILED' : 'ALL TESTS PASSED')
-    console.log('Total elapsed ms', new Date().getTime() - this.startTime)
-    return this.isGood()
 
+    console.info(this.totalErrors ? 'SOME TESTS FAILED' : 'ALL TESTS PASSED')
+    console.info('Total elapsed ms', new Date().getTime() - this.startTime)
+    return this.isGood()
   }
 
   /**
@@ -565,7 +566,7 @@ class _Unit {
       elapsed: finishedAt - startedAt
     }
     if (log) {
-      console.log(`timer ${description ? 'for ' + description : ''}`, timer)
+      console.info(`timer ${description ? 'for ' + description : ''}`, timer)
     }
     return {
       result,
@@ -578,22 +579,34 @@ class _Unit {
    * @param {Error || null} the error if there was one
    */
   threw(func) {
-    try {
-      func()
-      return null
-    } catch (error) {
+
+    const dealWithError = (error, isAsync) => {
+
+      // if this is an async response, the error message needs to go back as a promise too
+      const promy = (value) => isAsync ? Promise.resolve (value) : value
+
       // if this is a packresponse, we need to sort out the error message
+
       if (error && error.message && typeof error.message === 'string') {
         try {
-          return JSON.parse(error.message)
+          return promy(JSON.parse(error.message))
         } catch (err) {
-          return error
+          return promy(error)
         }
       }
-      return error
+      return promy(error)
+    }
+    try {
+      // the func might be async
+      const r = func()
+      if (Exports.Utils.isPromise(r)) {
+        return r.catch(error=>dealWithError(error, true))
+      }
+    } catch (error) {
+      return dealWithError (error)
     }
   }
 
 }
 // export
-var Unit = _Unit
+const Unit = _Unit
