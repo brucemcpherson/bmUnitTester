@@ -3,6 +3,7 @@ const testTester = () => {
 
   const unit = Exports.newUnit({
     showErrorsOnly: true,
+    showValues: true
   })
 
   const fix = {
