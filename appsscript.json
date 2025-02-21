@@ -1,6 +1,14 @@
 {
   "timeZone": "Europe/London",
-  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8"
+  "runtimeVersion": "V8",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "bmCodeLocator",
+        "libraryId": "14Je2i7tUrYJ7ZfAsKuaLQg72otSojKzaZpY7RmiIjqABoE-UdsgmslG9",
+        "version": "3"
+      }
+    ]
+  }
 }
