@@ -22,6 +22,6 @@ class UnexpectedValueError extends Error {
   }
 }
 // hoist for exports
-var newUnknownPropertyError = (prop) => new UnknownPropertyError(prop)
-var newUnexpectedTypeError = (expectedType, actualType) => new  UnexpectedTypeError(expectedType, actualType)
-var newUnexpectedValueError = (expectedValue, actualValue) => new  UnexpectedValueError(expectedValue, actualValue)
+const newUnknownPropertyError = (prop) => new UnknownPropertyError(prop)
+const newUnexpectedTypeError = (expectedType, actualType) => new  UnexpectedTypeError(expectedType, actualType)
+const newUnexpectedValueError = (expectedValue, actualValue) => new  UnexpectedValueError(expectedValue, actualValue)
