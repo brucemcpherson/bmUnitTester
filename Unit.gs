@@ -1,4 +1,13 @@
 
+//import {Exports} from './Exports.mjs';
+
+
+/**
+ * CodeReport
+ * @typedef CodeReport
+ * @property {CodeLocation} location report was created from
+ * @property {string} formatted a printable string constructed according to the CodeLocationFormatOptions
+ */
 
 /**
  * UnitResult
@@ -11,6 +20,7 @@
  * @property {boolean} jsEqual whether expected === actual (vanilla javascript equality)
  * @property {*} expect - the expected value
  * @property {*} actual - the actual value
+ * @property {CodeReport} codeReport = the location of the calling test
  */
 
 
@@ -24,6 +34,20 @@
  * @property {TestOptions} options - the section options
  */
 
+
+  /**
+   * @typedef CodeLocationFormatOptions
+   * @property {number} [lineOffset=0] offset from line - to point at for example the line before use -1
+   * @property {number} [surroundBefore=2] how many lines to show before the target line
+   * @property {number} [surroundAfter=2] how many lines to show after the target line
+   * @property {boolean} [showFileName=true] whether to show the filename
+   * @property {boolean} [showLineNumber=true] whether to show line numbers
+   * @property {boolean} [brief=false] brief only prints the target line and igmores sourround params and uses a concise format
+   * @property {number}  [lineNumberWidth=4] width of line number space
+   * @property {string} [pointer='--> '] point at target line
+   */
+
+
 /**
  * @typedef {Object} TestOptions
  * @property {function} [compare = this.defaultCompare] - function to compare expected to actual
@@ -34,6 +58,7 @@
  * @property {boolean} [showErrorsOnly = false]  - only verbose if there's an error
  * @property {number} [maxLog = Infinity]  - max number of chars to log in report
  * @property {boolean} [showValues = true] - show values in reports
+ * @property {CodeLocationFormatOptions} [codeLocationFormatOptions] - how to report code content
  */
 
 const _defaultOptions = {
@@ -49,12 +74,13 @@ const _defaultOptions = {
   maxLog: Infinity,
   showValues: true,
   expectThenActual: true,
-  _t: false
+  _t: false,
+  codeLocationFormatOptions: {}
 
 }
 
 
-class _Unit {
+class Unit {
 
   /**
    * @param {object} params 
@@ -150,7 +176,7 @@ class _Unit {
        * })
        * there are some behavioral changes between the 2 also
        */
-      const t = new _Unit({
+      const t = new Unit({
         ...options,
         expectThenActual: false,
         compare: (expect, actual) => {
@@ -231,7 +257,8 @@ class _Unit {
         failed,
         expect,
         actual,
-        jsEqual: expect === actual
+        jsEqual: expect === actual,
+        codeReport: Exports.CodeLocator.getCode (2, options.codeLocationFormatOptions)
       }
       currentSection.results.push(result)
       this.reportTest(result)
@@ -388,7 +415,6 @@ class _Unit {
   }
 
 
-
   /** 
    * do a test - succes is when compare is true
    * @param {*} actual the actual value
@@ -424,7 +450,8 @@ class _Unit {
    * @return {string} the decorated description
    */
   getTestDescription(result) {
-    return `${result.section.number}.${result.testNumber} ${result.options.description}`
+    const fop = result.options.codeLocationFormatOptions.brief ? result.codeReport.formatted : ""
+    return `${result.section.number}.${result.testNumber} ${fop} ${result.options.description}`
   }
 
   /**
@@ -446,9 +473,12 @@ class _Unit {
     const e = options.showValues ? this.trunk(expect, options) : '--'
     const a = options.showValues ? this.trunk(actual, options) : '--'
     if (failed) {
-      console.info('  ', this.getTestResult(result), '  \n', Exports.newUnexpectedValueError(e, a))
+      console.info('  ', this.getTestResult(result), '  \n', Exports.newUnexpectedValueError(e, a).toString())
     } else if (!options.showErrorsOnly) {
-      console.info('  ', this.getTestResult(result), '  \n', a)
+      console.info('  ', this.getTestResult(result), '  \n', "  Actual:", a)
+    }
+    if (!options.codeLocationFormatOptions.brief && (failed || !options.showErrorsOnly)) {
+      console.info (result.codeReport.formatted)
     }
     return result
   }
@@ -608,5 +638,4 @@ class _Unit {
   }
 
 }
-// export
-const Unit = _Unit
+
