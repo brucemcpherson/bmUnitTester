@@ -1,5 +1,5 @@
 # Google Apps Script Project: bmUnitTester
-This repo (bmUnitTester) was automatically updated on 1/24/2025, 3:45:53 PM by GasGit
+This repo (bmUnitTester) was automatically updated on 2/21/2025, 10:59:51 AM by GasGit
 
 For more information on gasgit, see the [desktop liberation site](https://ramblings.mcpher.com/drive-sdk-and-github/migrategasgit/ "desktop liberation")
 
@@ -16,17 +16,21 @@ The shared link for [bmUnitTester is here](https://script.google.com/d/1zOlHMOpO
 *name*|*type*
 --- | --- 
 appsscript| json
-Unit| server_js
-errors| server_js
 deepeql| server_js
-Utils| server_js
-test| server_js
+errors| server_js
 Exports| server_js
+test| server_js
+Unit| server_js
+Utils| server_js
 wildcardMatch| server_js
 ### Directly referenced libraries
-no libraries discovered
+*library*|*identifier*|*key*|*version*|*dev mode*|*source*|
+--- | --- | --- | --- | --- | --- 
+bmCodeLocator| bmCodeLocator|14Je2i7tUrYJ7ZfAsKuaLQg72otSojKzaZpY7RmiIjqABoE-UdsgmslG9|3|no|[here](libraries/bmCodeLocator "library source")
 ### All dependencies and sub dependencies
-no libraries discovered
+*library*|*identifier*|*key*|*version*|*dev mode*|*source*|
+--- | --- | --- | --- | --- | --- 
+bmCodeLocator| bmCodeLocator|14Je2i7tUrYJ7ZfAsKuaLQg72otSojKzaZpY7RmiIjqABoE-UdsgmslG9|3|no|[here](libraries/bmCodeLocator "library source")
 ### Enabled Google Services
 no libraries discovered
 ### Scopes required
