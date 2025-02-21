@@ -1,5 +1,13 @@
-
+//import {Exports} from './index.mjs';
 const testTester = () => {
+
+
+  if (Exports.CodeLocator.isGas) {
+    // because a GAS library cant get its caller's code
+    Exports.CodeLocator.setGetResource(ScriptApp.getResource)
+    // optional - generally not needed - only necessary if you are using multiple libraries and some file sahre the same ID
+    Exports.CodeLocator.setScriptId(ScriptApp.getScriptId())
+  }
 
   const unit = Exports.newUnit({
     showErrorsOnly: true,
@@ -40,6 +48,20 @@ const testTester = () => {
     t.falsey(0)
   })
 
+  unit.section ('code formatting with brief', t=> {
+    t.is ('foo', 'bar', 'deliberate fail')
+    t.is ('foo', 'bar',  {
+      description: 'deliberate fail non brief override',
+      codeLocationFormatOptions: {
+        brief: false
+      }
+    })
+  },{
+    codeLocationFormatOptions: {
+      brief: true,
+    }
+  })
+
   unit.section('try description as argument', t => {
     unit.truthy('foo', { description: 'this is a test' })
     t.is('foo', 'foo', 'trying description ava style')
@@ -71,3 +93,5 @@ const testTester = () => {
 
   unit.report()
 }
+
+//(async () => { await testTester () })(); //NO-GAS
