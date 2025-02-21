@@ -870,4 +870,4 @@ const DeepEqual = (() => {
   }
 
 })()
-var deepEquals = DeepEqual.deepEqual
+const deepEquals = DeepEqual.deepEqual
