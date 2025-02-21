@@ -1,4 +1,16 @@
-var Exports = {
+//import {Unit} from './Unit.mjs'
+//import {Utils} from './Utils.mjs'
+//import {wildcardMatch} from './wildcardMatch.mjs'
+//import {newUnknownPropertyError, newUnexpectedTypeError ,newUnexpectedValueError} from './errors.mjs'
+//import {deepEquals} from './deepeql.mjs';
+//import {CodeLocator} from '@mcpher/code-locator'
+
+const Exports = {
+
+  get CodeLocator () {
+    // patch for detecting library in gas versus import in node
+    return globalThis.bmCodeLocator ? bmCodeLocator.CodeLocator : CodeLocator
+  },
 
   /**
    * Unit Class 
@@ -60,7 +72,7 @@ var Exports = {
         if (
           typeof prop !== 'symbol' &&
           prop !== 'inspect' &&
-          //prop !== '__GS_INTERNAL_isProxy' &&
+          prop !== '__GS_INTERNAL_isProxy' &&
           !Reflect.has(target, prop)
         )
           throw new Error(`guard detected attempt to get non-existent property ${prop}`)
