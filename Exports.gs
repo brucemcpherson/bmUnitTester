@@ -3,13 +3,14 @@
 //import {wildcardMatch} from './wildcardMatch.mjs'
 //import {newUnknownPropertyError, newUnexpectedTypeError ,newUnexpectedValueError} from './errors.mjs'
 //import {deepEquals} from './deepeql.mjs';
-//import {CodeLocator} from '@mcpher/code-locator'
+//import {CodeLocator} from './codelocator.mjs'
 
 var Exports = {
 
   get CodeLocator () {
-    // patch for detecting library in gas versus import in node
-    return globalThis.bmCodeLocator ? bmCodeLocator.CodeLocator : CodeLocator
+    // code locator is now inline in this library
+    // as apps script cannot trace code more than 1 library deep
+    return CodeLocator
   },
 
   /**
