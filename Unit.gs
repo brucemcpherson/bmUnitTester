@@ -1,57 +1,58 @@
 
-//import {Exports} from './Exports.mjs';
+//import { Exports } from './Exports.mjs';
 
 
 /**
  * CodeReport
- * @typedef CodeReport
+ * @typedef {object} CodeReport
  * @property {CodeLocation} location report was created from
  * @property {string} formatted a printable string constructed according to the CodeLocationFormatOptions
  */
 
 /**
- * UnitResult
- * @typedef {Object} UnitResult
+ * SectionData
+ * @typedef {object} SectionData
+ * @property {function} test the collection of tests to run on this section
+ * @property {TestResult[]} results all the results for each individual test so far
+ * @property {number} number the section index starting at 0
+ * @property {TestOptions} options the options for thos section
+ * @property {number} startTime timestamp for when this section started
+ * @property {boolean} isAsync whether this is an async section
+ */
+
+
+/**
+ * TestResult
+ * @typedef {Object} TestResult
  * @property {TestOptions} options - the test options
- * @property {UnitSection} section - The section this result belongs to
+ * @property {SectionData} section - The section this result belongs to
  * @property {number} testNumber - Serial number within the section
- * @property {boolean} eql - whether actual equals expected using the compare function (default deep equality)
+ * @property {boolean} eql - whether actual equals expect using the compare function (default deep equality)
  * @property {boolean} failed - whether the test failed
- * @property {boolean} jsEqual whether expected === actual (vanilla javascript equality)
- * @property {*} expect - the expected value
+ * @property {boolean} jsEqual whether expect === actual (vanilla javascript equality)
+ * @property {*} expect - the expect value
  * @property {*} actual - the actual value
  * @property {CodeReport} codeReport = the location of the calling test
  */
 
 
 /**
- * @typedef {Object} UnitSection
- * @property {function} test - The section test collection
- * @property {UnitResult[]} results - The results for this section
- * @property {number} number - the section serial number
- * @property {number} startTime when section started
- * @property {number} endTime when section ended
- * @property {TestOptions} options - the section options
+ * @typedef CodeLocationFormatOptions
+ * @property {number} [lineOffset=0] offset from line - to point at for example the line before use -1
+ * @property {number} [surroundBefore=2] how many lines to show before the target line
+ * @property {number} [surroundAfter=2] how many lines to show after the target line
+ * @property {boolean} [showFileName=true] whether to show the filename
+ * @property {boolean} [showLineNumber=true] whether to show line numbers
+ * @property {boolean} [brief=false] brief only prints the target line and igmores sourround params and uses a concise format
+ * @property {number}  [lineNumberWidth=4] width of line number space
+ * @property {string} [pointer='--> '] point at target line
  */
-
-
-  /**
-   * @typedef CodeLocationFormatOptions
-   * @property {number} [lineOffset=0] offset from line - to point at for example the line before use -1
-   * @property {number} [surroundBefore=2] how many lines to show before the target line
-   * @property {number} [surroundAfter=2] how many lines to show after the target line
-   * @property {boolean} [showFileName=true] whether to show the filename
-   * @property {boolean} [showLineNumber=true] whether to show line numbers
-   * @property {boolean} [brief=false] brief only prints the target line and igmores sourround params and uses a concise format
-   * @property {number}  [lineNumberWidth=4] width of line number space
-   * @property {string} [pointer='--> '] point at target line
-   */
 
 
 /**
  * @typedef {Object} TestOptions
- * @property {function} [compare = this.defaultCompare] - function to compare expected to actual
- * @property {boolean} [invert = false] - whether success is that expected !== actual
+ * @property {function} [compare = this.defaultCompare] - function to compare expect to actual
+ * @property {boolean} [invert = false] - whether success is that expect !== actual
  * @property {string} [description = ''] - The test description
  * @property {boolean} [neverUndefined = true]  - if actual is ever undefined it's a failure
  * @property {boolean} [neverNull = false]  - if actual is ever null it's a failure
@@ -61,49 +62,95 @@
  * @property {CodeLocationFormatOptions} [codeLocationFormatOptions] - how to report code content
  */
 
-const _defaultOptions = {
-  compare: (expect, actual) => {
-    return Exports.deepEquals(expect, actual)
-  },
-  invert: false,
-  description: '',
-  neverUndefined: true,
-  neverNull: false,
-  showErrorsOnly: false,
-  skip: false,
-  maxLog: Infinity,
-  showValues: true,
-  expectThenActual: true,
-  _t: false,
-  codeLocationFormatOptions: {}
-
-}
-
-
 class Unit {
 
   /**
+   * by the time we get to here, expect/actual order anomalies should be sorted out
    * @param {object} params 
    * @param {TestOptions} [params.options] default options to apply to all sections
    * @return {Unit}
    */
   constructor(options = {}) {
+    this.compares = Object.freeze({
+      equal: (actual, expect) => actual === expect,
+      deepEqual: Exports.deepEquals,
+      truthy: (actual) => !!actual, 
+      true: (actual) => actual === true,
+      // the util expects wildcard, text
+      wildCardMatch: (a,b) => Exports.Utils.isMatch(b,a),
+      hasWildCards: Exports.Utils.hasWildCards,
+      rxMatch: (actual, expect) => {
+        if (!Exports.Utils.isRx(expect)) {
+          throw 'expect argument should be a regex'
+        }
+        return expect.test(actual)
+      }
+    })
+    /**
+     * @type TestOptions
+     */
+    this.defaultOptions = Object.freeze({
+      // legacy - deepequal was the default - still applies for unit.test, but not t.test
+      compare: this.compares.deepEqual,
+      invert: false,
+      description: '',
+      neverUndefined: true,
+      neverNull: false,
+      showErrorsOnly: false,
+      skip: false,
+      maxLog: Infinity,
+      showValues: true,
+      expectThenActual: true,
+      _t: false,
+      codeLocationFormatOptions: {
+      }
+    })
+
+    /**
+     * @param {TestOptions} options 
+     * @returns {TestOptions}
+     */
+    this.checkOptions = (options) => {
+      // private keys start with '_'
+      const isPublic = (k) => k.substring(0, 1) !== '_'
+      const badOptions = Reflect.ownKeys(options).filter(isPublic).filter(k => typeof options[k] !== typeof this.defaultOptions[k])
+      if (badOptions.length) {
+        throw new Error(`invalid format options ${JSON.stringify(badOptions)}`)
+      }
+      return options
+    }
+
     this.sections = []
     this.startTime = new Date().getTime()
-    this.options = {
-      ..._defaultOptions,
+
+    /**
+     * @type TestOptions
+     */
+    this.options = this.checkOptions({
+      ...this.defaultOptions,
       ...options
-    }
+    })
+
     // this one skips all tests from the points its turned on
     this.skipFromHere = false
   }
 
+  ///-- legacy support
   get deepEquals() {
-    return Exports.deepEquals
+    return this.compares.deepEqual
   }
 
   get defaultCompare() {
-    return _defaultOptions.compare
+    return this.defaultOptions.compare
+  }
+  //----
+
+  cancel() {
+    this.skipFromHere = true
+  }
+
+  unCancel() {
+    this.skipFromHere = false
   }
 
 
@@ -111,39 +158,41 @@ class Unit {
    * start a section of tests
    * @param {function| string} a a function with all the tests or a description (ava style)
    * @param {function|TestOptions} b a function with all the tests or options (ava style)
-   * @param {TestOptions} [options] default options for this section
-   * @return {UnitResult[]} tests that have failed so far in this section
+   * @param {TestOptions} [sectionOptions] default options for this section
+   * @return {TestResult[]} tests that have failed so far in this section
    */
   section(a, b, c) {
 
     // the first arg could be the test or the description to transition to ava style
-    let desc = a, test = b, options = c || {}
+    let desc = a, test = b, sectionOptions = c || {}
 
     if (Exports.Utils.isFunction(a)) {
       desc = ""
       test = a
-      options = b || {}
+      sectionOptions = b || {}
     }
 
-    options = {
+    const mergedOptions = {
+      // unit options
       ...this.options,
-      ...options,
-      description: options.description || desc,
-      sectionIndex: this.sections.length
+      // section options
+      ...sectionOptions,
+      description: sectionOptions.description || desc,
+      _sectionIndex: this.sections.length
     }
 
     const currentSection = {
       test,
       results: [],
       number: this.sections.length,
-      options,
+      options: mergedOptions,
       startTime: new Date().getTime(),
       isAsync: false
     }
 
     this.sections.push(currentSection)
 
-    let { skip, description } = options
+    let { skip, description } = mergedOptions
     description = description || desc
     skip = skip || this.skipFromHere
     const rp = (passes, failures) => {
@@ -170,20 +219,20 @@ class Unit {
        * this is the ava emulation object that gets passed as an alternative to using UNIT
        * so unit.section (t=> {
        *  // first version
-       *  unit.is (expected, actual)
+       *  unit.is (expect, actual)
        *  // new version
-       *  t.is (actual, expected)
+       *  t.is (actual, expect)
        * })
        * there are some behavioral changes between the 2 also
        */
-      const t = new Unit({
-        ...options,
+      const t = new Unit(this.checkOptions({
+        ...mergedOptions,
         expectThenActual: false,
-        compare: (expect, actual) => {
-          return expect === actual
-        },
+        // legacy unit.compare default is deepequal - t.compare default is equal
+        // however it's possible that section options might have overridden than
+        compare: sectionOptions.compare || this.compares.equal,
         _t: true
-      })
+      }))
       t.sections = [currentSection]
       //----- 
 
@@ -212,39 +261,55 @@ class Unit {
 
   /**
    * get the section currently being processed
-   * @return {UnitSection}
+   * @return {SectionData}
    */
   get currentSection() {
     return this.sections.slice(-1)[0]
   }
 
+
   /** 
-   * @param {*} a the expected value (or actual if expectThenActual is true)
-   * @param {*} b the actual value (or expected if expectThenActual is false)
-   * @param {TestOptions| string} testOptions 
-   * @return UnitResult
+   * legacy problem is that unit(expect,actual) still neeeds to be supported, but t(actual,expect) is preferred
+   * @param {*} actual the actual value 
+   * @param {*} [expect] the expect value or undefined if test only needs 1 arg
+   * @param {TestOptions| string} [options|string] testOptions or string description 
+   * @return TestResult
    */
-  test(a, b, options) {
+  test(actual, expect, options) {
+
+    // the t variant is a unique to the section and is a n instance of unit
+    // the legacy version is stil supported for now eg unit.is versus t.is
     const toptions = this.options._t ? this.options : {}
     const currentSection = this.currentSection
 
 
+
     const testNumber = currentSection.results.length
-    options = {
+    options = this.checkOptions({
       ...currentSection.options,
       ...toptions,
       ...options,
       description: options.description || `test: ${testNumber}`
+    })
+
+    //-- we need to flip if in legacy mode
+    const isFlipped = !this.options._t
+    if (isFlipped) {
+      const a = actual
+      actual = expect
+      expect = a
+    }
+    //----
+    if (currentSection.number !== options._sectionIndex) {
+      throw `unexpect section index ${options._sectionIndex} - expect ${currentSection.number}`
     }
 
-    const expect = options.expectThenActual ? a : b
-    const actual = options.expectThenActual ? b : a
+    if (!options.skip && !this.skipFromHere) {
+      if (!Exports.Utils.isFunction(options.compare)) {
+        throw `compare function is not a function - its a ${typeof options.compare}`
+      }
 
-    if (currentSection.number !== options.sectionIndex) {
-      throw `unexpected section index ${options.sectionIndex} - expected ${currentSection.number}`
-    }
-    if (!options.skip || this.skipFromHere) {
-      const eql = options.compare(expect, actual)
+      const eql = options.compare(actual, expect)
       const failed = (Boolean(eql) === Boolean(options.invert)) ||
         (options.neverUndefined && Exports.Utils.isUndefined(actual)) ||
         (options.neverNull && Exports.Utils.isNull(actual))
@@ -258,7 +323,7 @@ class Unit {
         expect,
         actual,
         jsEqual: expect === actual,
-        codeReport: Exports.CodeLocator.getCode (2, options.codeLocationFormatOptions)
+        codeReport: Exports.CodeLocator.getCode(2, options.codeLocationFormatOptions)
       }
       currentSection.results.push(result)
       this.reportTest(result)
@@ -282,104 +347,137 @@ class Unit {
         description: options
       }
     }
-    return options || {}
+    return this.checkOptions(options || {})
+  }
+
+  // a note on all these tests - the expect/actual args are sown as the legacy order so may have been reversed before calling here
+  // if t.test (new) is being used rather than unit.test(legacy)
+  /** 
+   * do a test - succes is when compare is true
+   * @param {*} expect the expect value
+   * @param {*} actual the actual value
+   * @param {TestOptions} options 
+   * @return TestResult
+   */
+  deepEqual(actual, expect, options) {
+    return this.test(actual, expect, {
+      ...this._fixOptions(options),
+      compare: this.compares.deepEqual,
+      invert: false
+    })
   }
   /** 
    * do a test - succes is when compare is true
-   * @param {*} expect the expected value
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
-  deepEqual(expect, actual, options) {
-    return this.test(expect, actual, {
-      compare: (expect, actual) => {
-        return Exports.deepEquals(expect, actual)
-      }, ...this._fixOptions(options), invert: false
+  equal(actual, expect, options) {
+    options = this._fixOptions(options)
+    return this.test(actual, expect, {
+      ...options,
+      compare: this.compares.equal,
+      invert: false
     })
   }
 
   /** 
-   * do a test - succes is when compare is false
-   * @param {*} expect the expected value
+   * do a test - succes is when compare is true
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
-  notDeepEqual(expect, actual, options) {
-    return this.test(expect, actual, {
-      compare: (expect, actual) => {
-        return Exports.deepEquals(expect, actual)
-      }, ...this._fixOptions(options), invert: true
+  notEqual(actual, expect, options) {
+    options = this._fixOptions(options)
+    return this.test(actual, expect, {
+      ...options,
+      compare: this.compares.equal,
+      invert: true
+    })
+  }
+  /** 
+   * do a test - succes is when compare is false
+   * @param {*} expect the expect value
+   * @param {*} actual the actual value
+   * @param {TestOptions} options 
+   * @return TestResult
+   */
+  notDeepEqual(actual, expect, options) {
+    return this.test(actual, expect, {
+      ...this._fixOptions(options),
+      compare: this.compares.deepEqual,
+      invert: true
     })
   }
 
 
   /** 
    * do a test - succes is when compare is true
-   * @param {*} expect the expected value
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
-  rxMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: false, compare: (expect, actual) => this.rxCompare(expect, actual) })
+  rxMatch(actual, expect, options) {
+    return this.test(actual, expect, { ...this._fixOptions(options), invert: false, compare: this.compares.rxMatch })
   }
 
   /** 
    * do a test - succes is when compare is false
-   * @param {*} expect the expected value
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
-  notRxMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: true, compare: (expect, actual) => this.rxCompare(expect, actual) })
+  notRxMatch(actual, expect, options) {
+    return this.test(actual, expect, { ...this._fixOptions(options), invert: true, compare: this.compares.rxMatch })
   }
 
   /** 
    * do a test - succes is when compare is true
-   * @param {*} expect the expected value
+   * @param {*} text the value to check
+   * @param {*} wildcard the wildcard to check it against
+   * @param {TestOptions} options 
+   * @return TestResult
+   */
+  wildCardMatch(text, wildcard, options) {
+    return this.test(text, wildcard, { ...this._fixOptions(options), invert: false, compare: this.compares.wildCardMatch })
+  }
+
+  /** 
+ * do a test - succes is when compare is true
+ * @param {*} text the value to check
+ * @param {*} wildcard the wildcard to check it against
+ * @param {TestOptions} options 
+ * @return TestResult
+ */
+  notWildCardMatch(text, wildcard, options) {
+    return this.test(text, wildcard, { ...this._fixOptions(options), invert: true, compare: this.compares.wildCardMatch })
+  }
+
+  /** 
+   * do a test - succes is when compare is true
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
-  wildCardMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: false, compare: (expect, actual) => this.wcCompare(expect, actual) })
+  is(actual, expect, options) {
+    return this.test(actual, expect, { ...this._fixOptions(options), invert: false })
   }
+
 
   /** 
    * do a test - succes is when compare is false
-   * @param {*} expect the expected value
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
-  notWildCardMatch(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: true, compare: (expect, actual) => this.wcCompare(expect, actual) })
-  }
-
-  /** 
-   * do a test - succes is when compare is true
-   * @param {*} expect the expected value
-   * @param {*} actual the actual value
-   * @param {TestOptions} options 
-   * @return UnitResult
-   */
-  is(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: false })
-  }
-
-
-  /** 
-   * do a test - succes is when compare is false
-   * @param {*} expect the expected value
-   * @param {*} actual the actual value
-   * @param {TestOptions} options 
-   * @return UnitResult
-   */
-  not(expect, actual, options) {
-    return this.test(expect, actual, { ...this._fixOptions(options), invert: true })
+  not(actual, expect, options) {
+    return this.test(actual, expect, { ...this._fixOptions(options), invert: true })
   }
 
 
@@ -387,66 +485,84 @@ class Unit {
    * do a test - succes is when compare is true
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
   true(actual, options) {
-    return this.test(actual, true, { ...this._fixOptions(options), expectThenActual: false, invert: false, })
+    return this.test(actual, true, {
+      ...this._fixOptions(options),
+      compare: this.compares.equal,
+      invert: false
+    })
   }
 
+  /** 
+ * do a test - succes is when compare is false
+ * @param {*} actual the actual value
+ * @param {TestOptions} options 
+ * @return TestResult
+ */
+  false(actual, options) {
+    return this.test(actual, true, {
+      ...this._fixOptions(options),
+      compare: this.compares.equal,
+      invert: true
+    })
+  }
   /** 
    * do a test - succes is when compare is false
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
   notHasWildCards(actual, options) {
-    return this.test(Exports.Utils.hasWildCards(actual), true, { ...this._fixOptions(options), expectThenActual: false, invert: true })
+    return this.test(actual, actual, {
+      ...this._fixOptions(options),
+      compare: this.compares.hasWildCards,
+      invert: true
+    })
   }
 
 
   /** 
    * do a test - succes is when compare is true
+   * @param {*} expect the expect value
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
   hasWildCards(actual, options) {
-    return this.test(Exports.Utils.hasWildCards(actual), true, { ...this._fixOptions(options), expectThenActual: false, invert: false })
+    return this.test(actual, actual, {
+      ...this._fixOptions(options),
+      compare: this.compares.hasWildCards,
+      invert: false
+    })
   }
+
+
 
 
   /** 
    * do a test - succes is when compare is true
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
-   */
-  false(actual, options) {
-    return this.test(actual, false, { ...this._fixOptions(options), expectThenActual: false, invert: false })
-  }
-
-  /** 
-   * do a test - succes is when compare is true
-   * @param {*} actual the actual value
-   * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
   truthy(actual, options) {
-    return this.test(actual ? true : false, true, { ...this._fixOptions(options), expectThenActual: false, invert: false })
+    return this.test(!!actual, true, { ...this._fixOptions(options), expectThenActual: false, compare: this.compares.equal, invert: false })
   }
 
   /** 
    * do a test - succes is when compare is true
    * @param {*} actual the actual value
    * @param {TestOptions} options 
-   * @return UnitResult
+   * @return TestResult
    */
   falsey(actual, options) {
-    return this.test(actual ? true : false, false, { ...this._fixOptions(options), expectThenActual: false, invert: false })
+    return this.test(!!actual, true, { ...this._fixOptions(options), compare: this.compares.equal, expectThenActual: false, invert: true })
   }
 
   /** 
-   * @param {UnitResult} result the unit result to get the description of
+   * @param {TestResult} result the unit result to get the description of
    * @return {string} the decorated description
    */
   getTestDescription(result) {
@@ -456,16 +572,16 @@ class Unit {
 
   /**
    * 
-   * @param {UnitResult} result the unit result to decorate
+   * @param {TestResult} result the unit result to decorate
    * @return {string} the decorated result
    */
   getTestResult(result) {
-    return `${this.getTestDescription(result)} - ${result.failed ? 'failed' : 'passed'} (${!result.options.invert} test)`
+    return `${this.getTestDescription(result)} - ${result.failed ? 'failed' : 'passed'}`
   }
 
   /** 
    * log the test
-   * @param {UnitResult} result the unit result to decorate
+   * @param {TestResult} result the unit result to decorate
    * @return {string} the decorated result
    */
   reportTest(result) {
@@ -473,12 +589,12 @@ class Unit {
     const e = options.showValues ? this.trunk(expect, options) : '--'
     const a = options.showValues ? this.trunk(actual, options) : '--'
     if (failed) {
-      console.info('  ', this.getTestResult(result), '  \n', Exports.newUnexpectedValueError(e, a).toString())
+      console.info('',this.getTestResult(result), ' \n', Exports.newUnexpectedValueError(e, a).toString())
     } else if (!options.showErrorsOnly) {
-      console.info('  ', this.getTestResult(result), '  \n', "  Actual:", a)
+      console.info('',this.getTestResult(result),  ' \n', "  Actual:", a)
     }
     if (!options.codeLocationFormatOptions.brief && (failed || !options.showErrorsOnly)) {
-      console.info (result.codeReport.formatted)
+      console.info(result.codeReport.formatted)
     }
     return result
   }
@@ -537,17 +653,18 @@ class Unit {
   }
 
   /**
+   * legacy - use rxMatch now
    * this is a prebaked comparison of error returned by unit.threw or indeed any rx
    * can be used like this unit.is(/regex to match error/, unit.threw(()=> some function), {
    *   compare: unit.rxCompare
    * })
    */
-  rxCompare(expected, actual) {
-    if (!Exports.Utils.isFunction(expected?.test)) {
-      throw 'expected argument to rxCompare should be a regex'
+  rxCompare(expect, actual) {
+    if (!Exports.Utils.isFunction(expect?.test)) {
+      throw 'expect argument to rxCompare should be a regex'
     }
 
-    return actual && expected.test(actual)
+    return actual && expect.test(actual)
   }
 
   /**
@@ -556,8 +673,8 @@ class Unit {
    *   compare: unit.rxCompare
    * })
    */
-  wcCompare(expected, actual) {
-    return Exports.Utils.isMatch(expected, actual)
+  wcCompare(expect, actual) {
+    return Exports.Utils.isMatch(expect, actual)
   }
 
   /**
@@ -567,7 +684,7 @@ class Unit {
   report() {
     console.info('Section summary')
     this.sections.forEach(f => {
-      console.info('',f.number+':', f.options.description, 'passes:'+ this.sectionPasses(f), 'failures:'+ this.sectionErrors(f))
+      console.info('', f.number + ':', f.options.description, 'passes:' + this.sectionPasses(f), 'failures:' + this.sectionErrors(f))
     })
     console.info('Total passes', this.totalPasses,
       `(${Exports.Utils.percent(this.totalPasses, this.totalPasses + this.totalErrors)}%)`,
@@ -613,7 +730,7 @@ class Unit {
     const dealWithError = (error, isAsync) => {
 
       // if this is an async response, the error message needs to go back as a promise too
-      const promy = (value) => isAsync ? Promise.resolve (value) : value
+      const promy = (value) => isAsync ? Promise.resolve(value) : value
 
       // if this is a packresponse, we need to sort out the error message
 
@@ -630,10 +747,10 @@ class Unit {
       // the func might be async
       const r = func()
       if (Exports.Utils.isPromise(r)) {
-        return r.catch(error=>dealWithError(error, true))
+        return r.catch(error => dealWithError(error, true))
       }
     } catch (error) {
-      return dealWithError (error)
+      return dealWithError(error)
     }
   }
 
