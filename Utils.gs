@@ -11,6 +11,7 @@ const Utils = (() => {
   const isArray = (item) => Array.isArray (item)
   const isPromise = (item) => !isNU (item) && (isObject(item) || isFunction(item)) && isFunction (item.then)
   const isString = (item) => typeof item === "string"
+  const isRx = (item) => item instanceof RegExp
   const percent = (value, base, places = 1) => {
     return base ? (100 * value / base).toFixed(places) : base.toFixed(places)
   }
@@ -40,7 +41,8 @@ const Utils = (() => {
     isString,
     hasWildCards,
     isMatch,
-    wMatch
+    wMatch,
+    isRx
   }
 
 })()
