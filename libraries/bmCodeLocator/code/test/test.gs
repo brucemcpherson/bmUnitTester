@@ -1,6 +1,7 @@
 //import { CodeLocator } from '../index.js'
 // these are for material for readme
 
+
 const test7 = () => {
   const foo = 'bar'
   if (foo !== 'foo') {
