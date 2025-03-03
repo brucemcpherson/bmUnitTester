@@ -74,10 +74,10 @@ class Unit {
     this.compares = Object.freeze({
       equal: (actual, expect) => actual === expect,
       deepEqual: Exports.deepEquals,
-      truthy: (actual) => !!actual, 
+      truthy: (actual) => !!actual,
       true: (actual) => actual === true,
       // the util expects wildcard, text
-      wildCardMatch: (a,b) => Exports.Utils.isMatch(b,a),
+      wildCardMatch: (a, b) => Exports.Utils.isMatch(b, a),
       hasWildCards: Exports.Utils.hasWildCards,
       rxMatch: (actual, expect) => {
         if (!Exports.Utils.isRx(expect)) {
@@ -113,7 +113,10 @@ class Unit {
     this.checkOptions = (options) => {
       // private keys start with '_'
       const isPublic = (k) => k.substring(0, 1) !== '_'
-      const badOptions = Reflect.ownKeys(options).filter(isPublic).filter(k => typeof options[k] !== typeof this.defaultOptions[k])
+
+      // we'll allow falsey && truthy alternatives for boolean
+      const badOptions = Reflect.ownKeys(options).filter(isPublic)
+        .filter(k => typeof options[k] !== typeof this.defaultOptions[k] && typeof this.defaultOptions[k] !== 'boolean')
       if (badOptions.length) {
         throw new Error(`invalid format options ${JSON.stringify(badOptions)}`)
       }
@@ -589,9 +592,9 @@ class Unit {
     const e = options.showValues ? this.trunk(expect, options) : '--'
     const a = options.showValues ? this.trunk(actual, options) : '--'
     if (failed) {
-      console.info('',this.getTestResult(result), ' \n', Exports.newUnexpectedValueError(e, a).toString())
+      console.info('', this.getTestResult(result), ' \n', Exports.newUnexpectedValueError(e, a).toString())
     } else if (!options.showErrorsOnly) {
-      console.info('',this.getTestResult(result),  ' \n', "  Actual:", a)
+      console.info('', this.getTestResult(result), ' \n', "  Actual:", a)
     }
     if (!options.codeLocationFormatOptions.brief && (failed || !options.showErrorsOnly)) {
       console.info(result.codeReport.formatted)
