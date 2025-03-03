@@ -150,11 +150,15 @@ const _CodeLocator = () => {
     Error.captureStackTrace(capture, this);
 
     // stack at each depth - skip the first as its from here
-    const result = capture.stack.slice(1).map((line, depth) => ({
-      depth,
-      fileName: line.getFileName().replace(/^.*:\/\//, ""),
-      line: line.getLineNumber()
-    }))
+    const result = capture.stack.slice(1).map((line, depth) => {
+      const fileName = line.getFileName() || 'unable to trace fileName'
+      return {
+        depth,
+        fileName: fileName.replace(/^.*:\/\//, ""),
+        line: line.getLineNumber()
+      }
+    }
+    )
 
     // restore original
     Error.prepareStackTrace = frozen;
@@ -277,7 +281,7 @@ const _CodeLocator = () => {
    */
   const getCode = (depth, options) => {
 
-    const {options: dOptions, depth: dDepth } = decorateOptions (depth, options)
+    const { options: dOptions, depth: dDepth } = decorateOptions(depth, options)
 
     const locations = getLocations()
     const location = locations[dDepth + 1]
@@ -299,7 +303,7 @@ const _CodeLocator = () => {
    * @return {CodeReport}
    */
   const whoCalled = (depth, options) => {
-    const {options: dOptions, depth: dDepth } = decorateOptions (depth, options)
+    const { options: dOptions, depth: dDepth } = decorateOptions(depth, options)
     const report = getCode(dDepth + 1, dOptions)
     console.info(report.formatted)
     return report
