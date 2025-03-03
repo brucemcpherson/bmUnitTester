@@ -5,7 +5,7 @@
 //import {deepEquals} from './deepeql.mjs';
 //import {CodeLocator} from '@mcpher/code-locator'
 
-const Exports = {
+var Exports = {
 
   get CodeLocator () {
     // patch for detecting library in gas versus import in node
