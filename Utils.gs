@@ -11,7 +11,8 @@ const Utils = (() => {
   const isArray = (item) => Array.isArray (item)
   const isPromise = (item) => !isNU (item) && (isObject(item) || isFunction(item)) && isFunction (item.then)
   const isString = (item) => typeof item === "string"
-  const isRx = (item) => item instanceof RegExp
+  /// instanceof test deoesnt work whe implemented in  an app script  library, so we needa looser test as below
+  const isRx = (item) => isObject(item) && Reflect.has (item, "test") && isFunction(item.test)
   const percent = (value, base, places = 1) => {
     return base ? (100 * value / base).toFixed(places) : base.toFixed(places)
   }
