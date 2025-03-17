@@ -112,6 +112,8 @@ const testTester = async () => {
   unit.section('rx stuff', t => {
     t.rxMatch("foo", /^F/i, "for ava order rx is the expected")
     unit.rxMatch(/.*O$/i, "foo", "for original order rx wildcard is the actual")
+    const f = t.threw(()=>t.rxMatch(/bar/, "foo"))
+    t.rxMatch (f,/expect argument should be/,"becuse a forced fail above")
   })
 
   await ('await async stuff on apps script', async t=> {
